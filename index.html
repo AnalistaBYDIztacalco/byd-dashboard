@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard BYD - Febrero 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         :root {
             --byd-red: #E31E24;
@@ -360,12 +359,6 @@
             color: var(--byd-red);
         }
 
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-        }
-
         @media (max-width: 1024px) {
             .charts-section {
                 grid-template-columns: 1fr;
@@ -392,26 +385,22 @@
     <div class="dashboard-container">
         <header>
             <div class="logo-section">
-                <h1>BYD Ventas</h1>
-                <div class="subtitle">Grupo Mena • 6 agencias</div>
+                <h1>BYD Dashboard</h1>
+                <div class="subtitle">Grupo Automotriz • 6 Agencias CDMX</div>
             </div>
             <div class="period-badge">
                 📅 FEBRERO 2026
             </div>
         </header>
 
-        <div id="loading" class="loading">
-            Cargando datos...
-        </div>
-
-        <div id="dashboard-content" style="display: none;">
+        <div id="dashboard-content">
             <div class="kpi-grid" id="kpi-grid"></div>
 
             <div class="charts-section">
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">Ventas por Agencia</div>
-                        <div class="chart-subtitle">Unidades vendidas hasta el 18 de Febrero 2026</div>
+                        <div class="chart-subtitle">Unidades vendidas en Febrero 2026</div>
                     </div>
                     <div class="bar-chart" id="bar-chart"></div>
                 </div>
@@ -450,32 +439,26 @@
     </div>
 
     <script>
-        // Cargar y procesar datos del CSV
-        Papa.parse('datos.csv', {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                const data = results.data.filter(row => row.Sucursal); // Filtrar filas vacías
-                renderDashboard(data);
-            },
-            error: function(error) {
-                document.getElementById('loading').innerHTML = 
-                    '⚠️ Error al cargar datos. Verifica que el archivo datos.csv esté en la misma carpeta.';
-            }
-        });
+        // Datos embebidos directamente en el código
+        const data = [
+            {Ranking: 1, Sucursal: "VALLEJO", UnidadesVendidas: 44, TotalLeads: 148, LeadsContactados: 142, TasaContacto: 96.0, TasaConversion: 29.7, TotalIngresos: 26982260, TotalUtilidad: 1976848, MargenPromedio: 7.3, TicketPromedio: 613233, LeadsPerdidos: 104},
+            {Ranking: 2, Sucursal: "ZARAGOZA", UnidadesVendidas: 40, TotalLeads: 264, LeadsContactados: 245, TasaContacto: 92.8, TasaConversion: 15.2, TotalIngresos: 23780800, TotalUtilidad: 1866866, MargenPromedio: 7.9, TicketPromedio: 594520, LeadsPerdidos: 224},
+            {Ranking: 3, Sucursal: "IZTACALCO", UnidadesVendidas: 22, TotalLeads: 376, LeadsContactados: 311, TasaContacto: 82.7, TasaConversion: 5.9, TotalIngresos: 12435736, TotalUtilidad: 936890, MargenPromedio: 7.5, TicketPromedio: 565260, LeadsPerdidos: 354},
+            {Ranking: 4, Sucursal: "TEXCOCO", UnidadesVendidas: 14, TotalLeads: 125, LeadsContactados: 101, TasaContacto: 80.8, TasaConversion: 11.2, TotalIngresos: 8030929, TotalUtilidad: 579788, MargenPromedio: 7.2, TicketPromedio: 573637, LeadsPerdidos: 111},
+            {Ranking: 5, Sucursal: "ERMITA", UnidadesVendidas: 14, TotalLeads: 170, LeadsContactados: 139, TasaContacto: 81.8, TasaConversion: 8.2, TotalIngresos: 7192440, TotalUtilidad: 582558, MargenPromedio: 8.1, TicketPromedio: 513745, LeadsPerdidos: 156},
+            {Ranking: 6, Sucursal: "IXTAPALUCA", UnidadesVendidas: 12, TotalLeads: 302, LeadsContactados: 225, TasaContacto: 74.5, TasaConversion: 4.0, TotalIngresos: 6671285, TotalUtilidad: 403289, MargenPromedio: 6.1, TicketPromedio: 555940, LeadsPerdidos: 290}
+        ];
+
+        // Renderizar dashboard
+        renderDashboard(data);
 
         function renderDashboard(data) {
-            // Ocultar loading
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
-
             // Calcular totales
             const totales = {
-                unidades: data.reduce((sum, row) => sum + (row.UnidadesVendidas || 0), 0),
-                ingresos: data.reduce((sum, row) => sum + (row.TotalIngresos || 0), 0),
-                leads: data.reduce((sum, row) => sum + (row.TotalLeads || 0), 0),
-                contactados: data.reduce((sum, row) => sum + (row.LeadsContactados || 0), 0)
+                unidades: data.reduce((sum, row) => sum + row.UnidadesVendidas, 0),
+                ingresos: data.reduce((sum, row) => sum + row.TotalIngresos, 0),
+                leads: data.reduce((sum, row) => sum + row.TotalLeads, 0),
+                contactados: data.reduce((sum, row) => sum + row.LeadsContactados, 0)
             };
 
             totales.ticketPromedio = totales.ingresos / totales.unidades;
@@ -488,7 +471,7 @@
             renderBarChart(data);
 
             // Renderizar métricas globales
-            renderMetrics(totales);
+            renderMetrics(totales, data);
 
             // Renderizar tabla
             renderTable(data);
@@ -537,7 +520,7 @@
             }).join('');
         }
 
-        function renderMetrics(totales) {
+        function renderMetrics(totales, data) {
             const metricsGrid = document.getElementById('metrics-grid');
             const tasaContacto = (totales.contactados / totales.leads) * 100;
             
@@ -566,7 +549,6 @@
             
             tableBody.innerHTML = data.map((row, index) => {
                 const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
-                const tasaContacto = row.TotalLeads > 0 ? (row.LeadsContactados / row.TotalLeads * 100) : 0;
                 
                 return `
                     <tr>
@@ -575,9 +557,9 @@
                         <td>${row.UnidadesVendidas}</td>
                         <td>${row.TotalLeads}</td>
                         <td>
-                            ${tasaContacto.toFixed(1)}%
+                            ${row.TasaContacto.toFixed(1)}%
                             <div class="conversion-bar">
-                                <div class="conversion-fill" style="width: ${tasaContacto}%;"></div>
+                                <div class="conversion-fill" style="width: ${row.TasaContacto}%;"></div>
                             </div>
                         </td>
                         <td>
