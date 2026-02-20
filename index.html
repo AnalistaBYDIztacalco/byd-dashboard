@@ -281,6 +281,7 @@
             height: 250px;
             gap: 1rem;
             margin-top: 1.5rem;
+            padding-bottom: 40px;
         }
 
         .bar-container {
@@ -288,16 +289,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
+            height: 100%;
+            justify-content: flex-end;
         }
 
         .bar {
-            width: 100%;
+           width: 100%;
+            min-height: 20px;
             background: linear-gradient(to top, var(--byd-red), #ff6b6b);
             border-radius: 8px 8px 0 0;
             position: relative;
             transition: all 0.3s ease;
             animation: growBar 1s ease-out backwards;
+
         }
 
         @keyframes growBar {
