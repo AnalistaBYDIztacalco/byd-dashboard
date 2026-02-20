@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard BYD - Febrero 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        :root {
+            --byd-red: #E31E24;
+            --byd-dark: #1a1a1a;
+            --byd-gray: #2a2a2a;
+            --success: #00ff88;
+            --warning: #ffd700;
+            --alert: #ff4444;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --gradient-bg: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--gradient-bg);
+            color: var(--text-primary);
+            padding: 2rem;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid rgba(227, 30, 36, 0.3);
+        }
+
+        .logo-section h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--byd-red);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(227, 30, 36, 0.5);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .period-badge {
+            background: rgba(227, 30, 36, 0.2);
+            border: 1px solid var(--byd-red);
+            padding: 0.7rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            color: var(--byd-red);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, var(--byd-gray) 0%, rgba(42, 42, 42, 0.8) 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(227, 30, 36, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: slideIn 0.6s ease-out backwards;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--byd-red), transparent);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--byd-red);
+            box-shadow: 0 10px 30px rgba(227, 30, 36, 0.3);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .kpi-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.3s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .kpi-subvalue {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, var(--byd-gray) 0%, rgba(42, 42, 42, 0.8) 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(227, 30, 36, 0.2);
+        }
+
+        .chart-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .agency-table {
+            width: 100%;
+            background: linear-gradient(135deg, var(--byd-gray) 0%, rgba(42, 42, 42, 0.8) 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(227, 30, 36, 0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid rgba(227, 30, 36, 0.3);
+        }
+
+        tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(227, 30, 36, 0.1);
+        }
+
+        .agency-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+            color: #000;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #CD7F32, #A0522D);
+            color: #fff;
+        }
+
+        .rank-other {
+            background: var(--byd-gray);
+            color: var(--text-secondary);
+        }
+
+        .conversion-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .conversion-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--byd-red), #ff6b6b);
+            border-radius: 4px;
+            transition: width 1s ease-out;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 250px;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .bar-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, var(--byd-red), #ff6b6b);
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            animation: growBar 1s ease-out backwards;
+        }
+
+        @keyframes growBar {
+            from {
+                transform: scaleY(0);
+                transform-origin: bottom;
+            }
+            to {
+                transform: scaleY(1);
+                transform-origin: bottom;
+            }
+        }
+
+        .bar:hover {
+            filter: brightness(1.2);
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .bar-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .metric-item {
+            background: rgba(227, 30, 36, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--byd-red);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--byd-red);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 1024px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .bar-chart {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="logo-section">
+                <h1>BYD Dashboard</h1>
+                <div class="subtitle">Grupo Automotriz • 6 Agencias CDMX</div>
+            </div>
+            <div class="period-badge">
+                📅 FEBRERO 2026
+            </div>
+        </header>
+
+        <div id="loading" class="loading">
+            Cargando datos...
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            <div class="kpi-grid" id="kpi-grid"></div>
+
+            <div class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Ventas por Agencia</div>
+                        <div class="chart-subtitle">Unidades vendidas en Febrero 2026</div>
+                    </div>
+                    <div class="bar-chart" id="bar-chart"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Métricas Globales</div>
+                        <div class="chart-subtitle">Resumen del grupo</div>
+                    </div>
+                    <div class="metrics-grid" id="metrics-grid"></div>
+                </div>
+            </div>
+
+            <div class="agency-table">
+                <div class="chart-header">
+                    <div class="chart-title">Ranking de Agencias</div>
+                    <div class="chart-subtitle">Desempeño detallado por sucursal</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Agencia</th>
+                            <th>Unidades</th>
+                            <th>Leads</th>
+                            <th>Tasa Contacto</th>
+                            <th>Conversión</th>
+                            <th>Ticket Prom.</th>
+                            <th>Ingreso</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cargar y procesar datos del CSV
+        Papa.parse('datos.csv', {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                const data = results.data.filter(row => row.Sucursal); // Filtrar filas vacías
+                renderDashboard(data);
+            },
+            error: function(error) {
+                document.getElementById('loading').innerHTML = 
+                    '⚠️ Error al cargar datos. Verifica que el archivo datos.csv esté en la misma carpeta.';
+            }
+        });
+
+        function renderDashboard(data) {
+            // Ocultar loading
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+
+            // Calcular totales
+            const totales = {
+                unidades: data.reduce((sum, row) => sum + (row.UnidadesVendidas || 0), 0),
+                ingresos: data.reduce((sum, row) => sum + (row.TotalIngresos || 0), 0),
+                leads: data.reduce((sum, row) => sum + (row.TotalLeads || 0), 0),
+                contactados: data.reduce((sum, row) => sum + (row.LeadsContactados || 0), 0)
+            };
+
+            totales.ticketPromedio = totales.ingresos / totales.unidades;
+            totales.tasaConversion = (totales.unidades / totales.leads) * 100;
+
+            // Renderizar KPIs
+            renderKPIs(totales);
+
+            // Renderizar gráfico de barras
+            renderBarChart(data);
+
+            // Renderizar métricas globales
+            renderMetrics(totales);
+
+            // Renderizar tabla
+            renderTable(data);
+        }
+
+        function renderKPIs(totales) {
+            const kpiGrid = document.getElementById('kpi-grid');
+            kpiGrid.innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-label">Unidades Vendidas</div>
+                    <div class="kpi-value">${totales.unidades.toLocaleString('es-MX')}</div>
+                    <div class="kpi-subvalue">Total del grupo</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Tasa de Conversión</div>
+                    <div class="kpi-value">${totales.tasaConversion.toFixed(1)}%</div>
+                    <div class="kpi-subvalue">${totales.unidades} ventas / ${totales.leads} leads</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Ticket Promedio</div>
+                    <div class="kpi-value">$${(totales.ticketPromedio / 1000).toFixed(0)}K</div>
+                    <div class="kpi-subvalue">${formatCurrency(totales.ticketPromedio)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Ingreso Total</div>
+                    <div class="kpi-value">$${(totales.ingresos / 1000000).toFixed(1)}M</div>
+                    <div class="kpi-subvalue">${formatCurrency(totales.ingresos)}</div>
+                </div>
+            `;
+        }
+
+        function renderBarChart(data) {
+            const barChart = document.getElementById('bar-chart');
+            const maxUnidades = Math.max(...data.map(row => row.UnidadesVendidas));
+            
+            barChart.innerHTML = data.map((row, index) => {
+                const height = (row.UnidadesVendidas / maxUnidades) * 100;
+                return `
+                    <div class="bar-container" style="animation-delay: ${index * 0.1}s;">
+                        <div class="bar" style="height: ${height}%;">
+                            <div class="bar-value">${row.UnidadesVendidas}</div>
+                        </div>
+                        <div class="bar-label">${row.Sucursal}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderMetrics(totales) {
+            const metricsGrid = document.getElementById('metrics-grid');
+            const tasaContacto = (totales.contactados / totales.leads) * 100;
+            
+            metricsGrid.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-label">Total Leads</div>
+                    <div class="metric-value">${totales.leads.toLocaleString('es-MX')}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Leads Contactados</div>
+                    <div class="metric-value">${totales.contactados.toLocaleString('es-MX')}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Tasa de Contacto</div>
+                    <div class="metric-value">${tasaContacto.toFixed(1)}%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Agencias Activas</div>
+                    <div class="metric-value">${data.length}</div>
+                </div>
+            `;
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('table-body');
+            
+            tableBody.innerHTML = data.map((row, index) => {
+                const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+                const tasaContacto = row.TotalLeads > 0 ? (row.LeadsContactados / row.TotalLeads * 100) : 0;
+                
+                return `
+                    <tr>
+                        <td><span class="rank-badge ${rankClass}">${row.Ranking}</span></td>
+                        <td class="agency-name">${row.Sucursal}</td>
+                        <td>${row.UnidadesVendidas}</td>
+                        <td>${row.TotalLeads}</td>
+                        <td>
+                            ${tasaContacto.toFixed(1)}%
+                            <div class="conversion-bar">
+                                <div class="conversion-fill" style="width: ${tasaContacto}%;"></div>
+                            </div>
+                        </td>
+                        <td>
+                            ${row.TasaConversion.toFixed(1)}%
+                            <div class="conversion-bar">
+                                <div class="conversion-fill" style="width: ${row.TasaConversion}%;"></div>
+                            </div>
+                        </td>
+                        <td>${formatCurrency(row.TicketPromedio)}</td>
+                        <td>${formatCurrency(row.TotalIngresos)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Animar barras de conversión
+            setTimeout(() => {
+                document.querySelectorAll('.conversion-fill').forEach(fill => {
+                    const width = fill.style.width;
+                    fill.style.width = '0%';
+                    setTimeout(() => {
+                        fill.style.width = width;
+                    }, 100);
+                });
+            }, 500);
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+    </script>
+</body>
+</html>
