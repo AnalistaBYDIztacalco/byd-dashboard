@@ -495,6 +495,58 @@
                 flex-direction: column;
             }
         }
+
+        /* ============================================
+           TABLA DE MODELOS EXPANDIBLE
+        ============================================ */
+
+        /* Fila de modelo (encabezado colapsable) */
+        .model-row {
+            cursor: pointer;
+            background: rgba(227, 30, 36, 0.08);
+            transition: background 0.2s ease;
+        }
+        .model-row:hover {
+            background: rgba(227, 30, 36, 0.18);
+        }
+        .model-row td {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Ícono de expandir/colapsar */
+        .expand-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--byd-red);
+            transition: transform 0.2s ease;
+            margin-right: 0.4rem;
+        }
+        .expand-icon.open {
+            transform: rotate(90deg);
+        }
+
+        /* Filas de agencia (detalle) */
+        .agency-detail-row {
+            display: none;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .agency-detail-row.visible {
+            display: table-row;
+        }
+        .agency-detail-row td {
+            padding-left: 2.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .agency-detail-row td:first-child::before {
+            content: "└ ";
+            color: var(--byd-red);
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -600,10 +652,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Agencia</th>
                             <th>Modelo</th>
                             <th>Unidades</th>
-                            <th>% de la Agencia</th>
+                            <th>% del Total</th>
                             <th>Ingreso</th>
                         </tr>
                     </thead>
@@ -674,10 +725,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Agencia</th>
                             <th>Modelo</th>
                             <th>Unidades</th>
-                            <th>% de la Agencia</th>
+                            <th>% del Total</th>
                             <th>Ingreso</th>
                         </tr>
                     </thead>
@@ -14089,86 +14139,109 @@
 
         function renderModelsTable(datosModelos, mesSeleccionado, tipoVenta = 'Retail', tableBodyId = 'table-body-modelos') {
             const tableBody = document.getElementById(tableBodyId);
-            
-            if (!tableBody) {
-                console.warn(`Table body ${tableBodyId} no encontrado`);
-                return;
-            }
-            
+            if (!tableBody) return;
+
             // Filtrar por mes y tipo de venta
-            const datosMes = datosModelos.filter(d => 
-                d.AñoMes === mesSeleccionado && 
+            const datosMes = datosModelos.filter(d =>
+                d.AñoMes === mesSeleccionado &&
                 (d.TipoVenta === tipoVenta || (!d.TipoVenta && tipoVenta === 'Retail'))
             );
-            
-            // Si no hay datos
+
             if (datosMes.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-secondary);">
                             No hay ventas de ${tipoVenta} en este período
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
                 return;
             }
-            
-            // Calcular totales e ingresos por agencia
-            const totalesPorAgencia = {};
-            const ingresosPorModelo = {};
-            
+
+            // Agrupar por modelo — sumar unidades e ingresos de todas las agencias
+            const porModelo = {};
             datosMes.forEach(row => {
+                const modelo = row.Modelo || row.ModeloDescripcion || 'Sin modelo';
+                if (!porModelo[modelo]) {
+                    porModelo[modelo] = { unidades: 0, ingresos: 0, agencias: {} };
+                }
+                const u = row.Unidades || 0;
+                const ing = row.TotalIngresos || 0;
+                porModelo[modelo].unidades += u;
+                porModelo[modelo].ingresos += ing;
+
+                // Detalle por agencia dentro del modelo
                 const agencia = row.Sucursal;
-                const key = `${agencia}_${row.Modelo}`;
-                
-                // Totales por agencia
-                if (!totalesPorAgencia[agencia]) {
-                    totalesPorAgencia[agencia] = 0;
+                if (!porModelo[modelo].agencias[agencia]) {
+                    porModelo[modelo].agencias[agencia] = { unidades: 0, ingresos: 0 };
                 }
-                totalesPorAgencia[agencia] += row.Unidades || 1;
-                
-                // Ingresos por modelo (si existe TotalIngresos en los datos)
-                if (!ingresosPorModelo[key]) {
-                    ingresosPorModelo[key] = 0;
-                }
-                // Si tu CSV de modelos tiene un campo de ingresos, úsalo
-                // Si no, calculamos un ingreso estimado por unidad
-                ingresosPorModelo[key] += row.TotalIngresos || ((row.Unidades || 1) * 500000); // 500k por unidad como estimado
+                porModelo[modelo].agencias[agencia].unidades += u;
+                porModelo[modelo].agencias[agencia].ingresos += ing;
             });
-            
-            // Ordenar: primero por agencia (orden fijo), luego por unidades descendente
-            const datosOrdenados = [...datosMes].sort((a, b) => {
-                const indexA = ORDEN_AGENCIAS.indexOf(a.Sucursal);
-                const indexB = ORDEN_AGENCIAS.indexOf(b.Sucursal);
-                
-                if (indexA !== indexB) {
-                    return indexA - indexB;
-                }
-                
-                return (b.Unidades || 1) - (a.Unidades || 1);
-            });
-            
-            tableBody.innerHTML = datosOrdenados.map(row => {
-                const totalAgencia = totalesPorAgencia[row.Sucursal];
-                const porcentaje = totalAgencia > 0 ? ((row.Unidades || 1) / totalAgencia * 100).toFixed(1) : 0;
-                const key = `${row.Sucursal}_${row.Modelo}`;
-                const ingreso = ingresosPorModelo[key] || ((row.Unidades || 1) * 500000);
-                
-                return `
-                    <tr>
-                        <td class="agency-name">${row.Sucursal}</td>
-                        <td><strong>${row.Modelo}</strong></td>
-                        <td>${row.Unidades || 1}</td>
+
+            // Total general de unidades para calcular % del total
+            const totalUnidades = Object.values(porModelo).reduce((s, m) => s + m.unidades, 0);
+
+            // Ordenar modelos por unidades descendente
+            const modelosOrdenados = Object.entries(porModelo)
+                .sort((a, b) => b[1].unidades - a[1].unidades);
+
+            // Construir filas HTML
+            let filas = '';
+            modelosOrdenados.forEach(([modelo, datos], idx) => {
+                const pct = totalUnidades > 0 ? (datos.unidades / totalUnidades * 100).toFixed(1) : 0;
+                const grupoId = `${tableBodyId}_grupo_${idx}`;
+
+                // Fila resumen del modelo (colapsable)
+                filas += `
+                    <tr class="model-row" onclick="toggleModelo('${grupoId}', this)">
                         <td>
-                            ${porcentaje}%
+                            <span class="expand-icon">▶</span>
+                            <strong>${modelo}</strong>
+                        </td>
+                        <td>${datos.unidades.toLocaleString('es-MX')}</td>
+                        <td>
+                            ${pct}%
                             <div class="conversion-bar">
-                                <div class="conversion-fill" style="width: ${porcentaje}%;"></div>
+                                <div class="conversion-fill" style="width:${pct}%;"></div>
                             </div>
                         </td>
-                        <td>${formatCurrency(ingreso)}</td>
-                    </tr>
-                `;
-            }).join('');
+                        <td>${formatCurrency(datos.ingresos)}</td>
+                    </tr>`;
+
+                // Filas de detalle por agencia (ocultas por defecto)
+                const agenciasOrdenadas = Object.entries(datos.agencias)
+                    .sort((a, b) => b[1].unidades - a[1].unidades);
+
+                agenciasOrdenadas.forEach(([agencia, det]) => {
+                    const pctAgencia = datos.unidades > 0
+                        ? (det.unidades / datos.unidades * 100).toFixed(1) : 0;
+                    filas += `
+                        <tr class="agency-detail-row" data-grupo="${grupoId}">
+                            <td>${agencia}</td>
+                            <td>${det.unidades.toLocaleString('es-MX')}</td>
+                            <td>
+                                ${pctAgencia}%
+                                <div class="conversion-bar">
+                                    <div class="conversion-fill" style="width:${pctAgencia}%;"></div>
+                                </div>
+                            </td>
+                            <td>${formatCurrency(det.ingresos)}</td>
+                        </tr>`;
+                });
+            });
+
+            tableBody.innerHTML = filas;
+        }
+
+        // Función para expandir/colapsar filas de agencia
+        function toggleModelo(grupoId, filaModelo) {
+            const icono = filaModelo.querySelector('.expand-icon');
+            const filas = document.querySelectorAll(`[data-grupo="${grupoId}"]`);
+            const estaAbierto = icono.classList.contains('open');
+
+            // Alternar estado
+            icono.classList.toggle('open', !estaAbierto);
+            filas.forEach(fila => fila.classList.toggle('visible', !estaAbierto));
         }
 
         // ============================================
