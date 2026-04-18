@@ -547,6 +547,59 @@
             color: var(--byd-red);
             opacity: 0.5;
         }
+
+        /* ============================================
+           GRÁFICA HISTÓRICA + FILTRO DE AGENCIA
+        ============================================ */
+
+        .historico-container {
+            background: linear-gradient(135deg, var(--byd-gray) 0%, rgba(42,42,42,0.8) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(227,30,36,0.2);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .historico-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        /* Selector de agencia */
+        .agencia-filtro {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .agencia-btn {
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            border: 1px solid rgba(227,30,36,0.3);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-family: 'IBM Plex Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .agencia-btn:hover {
+            border-color: var(--byd-red);
+            color: var(--text-primary);
+        }
+
+        .agencia-btn.activo {
+            background: var(--byd-red);
+            border-color: var(--byd-red);
+            color: white;
+            box-shadow: 0 2px 10px rgba(227,30,36,0.4);
+        }
     </style>
 </head>
 <body>
@@ -579,6 +632,28 @@
         <!-- CONTENIDO RETAIL -->
         <div id="tab-retail" class="tab-content active">
             <div class="kpi-grid" id="kpi-grid-retail"></div>
+
+            <!-- Gráfica histórica de unidades por mes -->
+            <div class="historico-container">
+                <div class="historico-header">
+                    <div>
+                        <div class="chart-title">📈 Evolución Mensual de Unidades — Retail</div>
+                        <div class="chart-subtitle" style="margin-top:0.3rem">Ene 2025 · Hoy · Grupo + Por agencia</div>
+                    </div>
+                    <div class="agencia-filtro" id="filtro-retail">
+                        <button class="agencia-btn activo" onclick="filtrarHistorico('retail','GRUPO',this)">Grupo</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','ERMITA',this)">Ermita</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','IXTAPALUCA',this)">Ixtapaluca</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','IZTACALCO',this)">Iztacalco</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','TEXCOCO',this)">Texcoco</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','VALLEJO',this)">Vallejo</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('retail','ZARAGOZA',this)">Zaragoza</button>
+                    </div>
+                </div>
+                <div style="height:300px;position:relative;">
+                    <canvas id="historico-chart-retail"></canvas>
+                </div>
+            </div>
 
             <!-- Fila 1: Ventas por agencia (izquierda) + Métricas pequeñas (derecha) -->
             <div class="charts-section">
@@ -667,6 +742,28 @@
         <div id="tab-flotilla" class="tab-content">
             <div class="kpi-grid" id="kpi-grid-flotilla"></div>
 
+            <!-- Gráfica histórica de unidades por mes - Flotilla -->
+            <div class="historico-container">
+                <div class="historico-header">
+                    <div>
+                        <div class="chart-title">📈 Evolución Mensual de Unidades — Flotilla</div>
+                        <div class="chart-subtitle" style="margin-top:0.3rem">Ene 2025 · Hoy · Grupo + Por agencia</div>
+                    </div>
+                    <div class="agencia-filtro" id="filtro-flotilla">
+                        <button class="agencia-btn activo" onclick="filtrarHistorico('flotilla','GRUPO',this)">Grupo</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','ERMITA',this)">Ermita</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','IXTAPALUCA',this)">Ixtapaluca</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','IZTACALCO',this)">Iztacalco</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','TEXCOCO',this)">Texcoco</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','VALLEJO',this)">Vallejo</button>
+                        <button class="agencia-btn" onclick="filtrarHistorico('flotilla','ZARAGOZA',this)">Zaragoza</button>
+                    </div>
+                </div>
+                <div style="height:300px;position:relative;">
+                    <canvas id="historico-chart-flotilla"></canvas>
+                </div>
+            </div>
+
             <div class="charts-section">
                 <div class="chart-card">
                     <div class="chart-header">
@@ -738,6 +835,227 @@
     </div>
 
     <script>
+
+
+        // ============================================
+        // OBJETIVOS MENSUALES POR AGENCIA
+        // (Retail + Flotilla sumados)
+        //
+        // Para agregar un nuevo mes, copia el bloque
+        // del mes anterior y cambia la fecha y números.
+        // ============================================
+
+        const OBJETIVOS = {
+            "2026-04": {
+                "IZTACALCO":  80,
+                "VALLEJO":    85,
+                "ERMITA":     65,
+                "ZARAGOZA":   80,
+                "IXTAPALUCA": 45,
+                "TEXCOCO":    45
+            }
+            // Ejemplo para agregar mayo:
+            // ,
+            // "2026-05": {
+            //     "IZTACALCO":  80,
+            //     "VALLEJO":    85,
+            //     "ERMITA":     65,
+            //     "ZARAGOZA":   80,
+            //     "IXTAPALUCA": 45,
+            //     "TEXCOCO":    45
+            // }
+        };
+
+        // ============================================
+        // GRÁFICA HISTÓRICA DE UNIDADES POR MES
+        // ============================================
+
+        // Instancias de Chart.js para poder destruirlas al redibujar
+        const historicoCharts = { retail: null, flotilla: null };
+
+        function renderHistorico(tipo) {
+            // Seleccionar datos según pestaña
+            const datos = tipo === 'retail' ? datosRetail : datosFlotilla;
+
+            // Filtrar solo desde 2025-01 en adelante y ordenar por mes
+            const meses = [...new Set(
+                datos
+                    .filter(d => d.AñoMes >= '2025-01')
+                    .map(d => d.AñoMes)
+            )].sort();
+
+            // Dibujar con el filtro activo (por defecto: GRUPO)
+            dibujarHistorico(tipo, meses, datos, 'GRUPO');
+        }
+
+        function filtrarHistorico(tipo, agencia, boton) {
+            // Actualizar botón activo
+            const contenedor = document.getElementById(`filtro-${tipo}`);
+            contenedor.querySelectorAll('.agencia-btn').forEach(b => b.classList.remove('activo'));
+            boton.classList.add('activo');
+
+            // Datos del tipo correspondiente
+            const datos = tipo === 'retail' ? datosRetail : datosFlotilla;
+
+            const meses = [...new Set(
+                datos
+                    .filter(d => d.AñoMes >= '2025-01')
+                    .map(d => d.AñoMes)
+            )].sort();
+
+            dibujarHistorico(tipo, meses, datos, agencia);
+        }
+
+        function dibujarHistorico(tipo, meses, datos, agencia) {
+            const canvasId = `historico-chart-${tipo}`;
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            // Combinar Retail + Flotilla para reflejar el total real
+            // (los objetivos son sobre unidades totales, no por tipo)
+            const todosLosDatos = [...datosRetail, ...datosFlotilla];
+
+            // Calcular unidades por mes (Retail + Flotilla sumados)
+            const unidadesPorMes = meses.map(mes => {
+                const filas = todosLosDatos.filter(d => d.AñoMes === mes);
+                if (agencia === 'GRUPO') {
+                    return filas.reduce((s, d) => s + (d.UnidadesVendidas || 0), 0);
+                } else {
+                    return filas
+                        .filter(d => d.Sucursal === agencia)
+                        .reduce((s, d) => s + (d.UnidadesVendidas || 0), 0);
+                }
+            });
+
+            // Calcular línea de objetivo por mes
+            const objetivosPorMes = meses.map(mes => {
+                const obj = OBJETIVOS[mes];
+                if (!obj) return null; // sin objetivo registrado → no mostrar punto
+                if (agencia === 'GRUPO') {
+                    return Object.values(obj).reduce((s, v) => s + v, 0);
+                } else {
+                    return obj[agencia] || null;
+                }
+            });
+
+            // Hay al menos un objetivo registrado?
+            const hayObjetivos = objetivosPorMes.some(v => v !== null);
+
+            // Etiquetas legibles: "Ene 25", "Feb 25", etc.
+            const mesesNombres = {
+                '01':'Ene','02':'Feb','03':'Mar','04':'Abr',
+                '05':'May','06':'Jun','07':'Jul','08':'Ago',
+                '09':'Sep','10':'Oct','11':'Nov','12':'Dic'
+            };
+            const etiquetas = meses.map(m => {
+                const [anio, mes] = m.split('-');
+                return `${mesesNombres[mes]} ${anio.slice(2)}`;
+            });
+
+            // Destruir chart anterior si existe
+            if (historicoCharts[tipo]) {
+                historicoCharts[tipo].destroy();
+            }
+
+            // Mes seleccionado resaltado en rojo sólido
+            const mesActual = document.getElementById('month-selector').value;
+            const colores = meses.map(m =>
+                m === mesActual ? 'rgba(227,30,36,1)' : 'rgba(227,30,36,0.45)'
+            );
+            const bordes = meses.map(m =>
+                m === mesActual ? 'rgba(227,30,36,1)' : 'rgba(227,30,36,0.6)'
+            );
+
+            // Datasets: barras de unidades + línea de objetivo (si hay)
+            const datasets = [
+                {
+                    type: 'bar',
+                    label: agencia === 'GRUPO' ? 'Unidades Grupo' : `Unidades ${agencia}`,
+                    data: unidadesPorMes,
+                    backgroundColor: colores,
+                    borderColor: bordes,
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    order: 2
+                }
+            ];
+
+            if (hayObjetivos) {
+                datasets.push({
+                    type: 'line',
+                    label: 'Objetivo',
+                    data: objetivosPorMes,
+                    borderColor: 'rgba(255, 215, 0, 0.9)',   // amarillo dorado
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [6, 4],                       // línea punteada
+                    pointBackgroundColor: 'rgba(255, 215, 0, 1)',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    spanGaps: false,  // no conectar puntos nulos
+                    order: 1
+                });
+            }
+
+            historicoCharts[tipo] = new Chart(canvas, {
+                type: 'bar',
+                data: { labels: etiquetas, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: hayObjetivos,
+                            labels: {
+                                color: '#b0b0b0',
+                                font: { size: 11 },
+                                boxWidth: 20,
+                                padding: 16
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26,26,26,0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#b0b0b0',
+                            borderColor: 'rgba(227,30,36,0.4)',
+                            borderWidth: 1,
+                            callbacks: {
+                                // Mostrar % de avance cuando hay objetivo
+                                afterBody: (items) => {
+                                    const mesIdx = items[0].dataIndex;
+                                    const obj = objetivosPorMes[mesIdx];
+                                    const vendidas = unidadesPorMes[mesIdx];
+                                    if (obj && obj > 0) {
+                                        const pct = ((vendidas / obj) * 100).toFixed(1);
+                                        return [`Avance: ${pct}% del objetivo (${obj} uds)`];
+                                    }
+                                    return [];
+                                },
+                                label: ctx => {
+                                    if (ctx.dataset.type === 'line') {
+                                        return ` Objetivo: ${ctx.parsed.y} uds`;
+                                    }
+                                    return ` Vendidas: ${ctx.parsed.y} uds`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#b0b0b0', font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#b0b0b0', font: { size: 11 } },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
         // ============================================
         // DATOS - REEMPLAZA CON TUS DATOS REALES
         // ============================================
@@ -13660,6 +13978,7 @@
         
         function renderDashboardRetail(data) {
             const { mesActual, datosActuales, datosAnteriores } = data;
+            renderHistorico('retail');
             
             // Actualizar badge de período
             actualizarPeriodoBadge(mesActual);
@@ -14322,6 +14641,7 @@
         
         function renderDashboardFlotilla(data) {
             const { mesActual, datosActuales, datosAnteriores } = data;
+            renderHistorico('flotilla');
             
             const totalesActuales = calcularTotalesFlotilla(datosActuales);
             const totalesAnteriores = datosAnteriores.length > 0 ? calcularTotalesFlotilla(datosAnteriores) : null;
